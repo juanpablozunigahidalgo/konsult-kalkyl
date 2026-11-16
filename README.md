@@ -36,9 +36,6 @@ This repo is how I think about offers: numbers first, narrative second, ego last
 | **Cost stack** | Transport (Västtrafik or car detail), lodging, education, hardware, digital/AI tools, telephony, accounting, insurance, conferences |
 | **Tax engine** | Arbetsgivaravgifter, bolagsskatt, K10 dividend, Göteborg kommunalskatt, grundavdrag / jobbskatteavdrag approximations aligned to Skatteverket 2026 |
 | **Executive summary** | One paragraph: revenue, pocket, pension, dividend, conclusion |
-| **AI offer analysis** | Live CV from [zunigajp.com/english/cv](https://zunigajp.com/english/cv/) + pasted JD (EN/other) → strategic recommendation in Spanish |
-
-UI: white, black, Consolas. Inspired by [zunigajp.com](https://zunigajp.com). No dashboard clutter.
 
 ---
 
