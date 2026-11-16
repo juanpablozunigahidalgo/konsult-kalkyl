@@ -8,7 +8,7 @@ const CV_CACHE_KEY = 'cc_cv_live_v1';
 const CV_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const GEMINI_KEY_STORAGE = 'cc_gemini_api_key';
 const CV_MAX_CHARS = 14000;
-const GEMINI_MODEL = 'gemini-2.0-flash';
+const GEMINI_MODEL = 'gemini-3.8-flash';
 
 const SYSTEM_PROMPT = `Eres un advisor estratégico para un consultor independiente con AB en Suecia (Göteborg).
 Piensa fuera de la caja y a la vez como calculadora financiera y negociador de mercado.
