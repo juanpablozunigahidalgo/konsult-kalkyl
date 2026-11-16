@@ -8,13 +8,9 @@ const CV_CACHE_KEY = 'cc_cv_live_v1';
 const CV_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const GEMINI_KEY_STORAGE = 'cc_gemini_api_key';
 const CV_MAX_CHARS = 14000;
-const GEMINI_MODELS = [
-  'gemini-3.8-flash',
-  'gemini-2.5-flash',
-  'gemini-flash-latest',
-];
+const GEMINI_MODEL = 'gemini-3.8-flash';
 const ANALYZE_MAX_ATTEMPTS = 4;
-const ANALYZE_BACKOFF_MS = [3000, 8000, 15000, 25000];
+const ANALYZE_BACKOFF_MS = [4000, 10000, 20000, 30000];
 
 const SYSTEM_PROMPT = `Eres un advisor estratégico para un consultor independiente con AB en Suecia (Göteborg).
 Piensa fuera de la caja y a la vez como calculadora financiera y negociador de mercado.
@@ -274,23 +270,31 @@ export async function analyzeOffer({
   let lastError = null;
 
   for (let attempt = 0; attempt < ANALYZE_MAX_ATTEMPTS; attempt += 1) {
-    const model = GEMINI_MODELS[Math.min(attempt, GEMINI_MODELS.length - 1)];
-    const waitMs = ANALYZE_BACKOFF_MS[attempt] || 25000;
+    const waitMs = ANALYZE_BACKOFF_MS[attempt] || 30000;
 
     if (attempt === 0) {
-      onStatus?.('Pensando con Gemini… (puede tardar)');
+      onStatus?.(`Pensando con ${GEMINI_MODEL}… (puede tardar)`);
     } else {
       onStatus?.(
-        `Saturado / lento. Esperando ${Math.round(waitMs / 1000)}s y reintento ${attempt + 1}/${ANALYZE_MAX_ATTEMPTS} (${model})…`
+        `Saturado. Esperando ${Math.round(waitMs / 1000)}s… reintento ${attempt + 1}/${ANALYZE_MAX_ATTEMPTS}`
       );
       await sleep(waitMs);
-      onStatus?.(`Reintento ${attempt + 1}/${ANALYZE_MAX_ATTEMPTS} con ${model}…`);
+      onStatus?.(`Reintento ${attempt + 1}/${ANALYZE_MAX_ATTEMPTS}…`);
     }
 
     try {
-      return await callGeminiOnce({ apiKey, model, system, user });
+      return await callGeminiOnce({
+        apiKey,
+        model: GEMINI_MODEL,
+        system,
+        user,
+      });
     } catch (err) {
       lastError = err;
+      // Model retired / not available — no sense retrying the same dead model name
+      if (/no longer available|not found|is not found/i.test(String(err.message || ''))) {
+        throw err;
+      }
       if (!err.retryable) throw err;
     }
   }
