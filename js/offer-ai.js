@@ -8,9 +8,11 @@ const CV_CACHE_KEY = 'cc_cv_live_v1';
 const CV_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const GEMINI_KEY_STORAGE = 'cc_gemini_api_key';
 const CV_MAX_CHARS = 14000;
-const GEMINI_MODEL = 'gemini-3.8-flash';
+// Same stable aliases as zunigajp chat-worker (wrangler GEMINI_MODELS)
+const GEMINI_MODELS = ['gemini-flash-latest', 'gemini-flash-lite-latest'];
 const ANALYZE_MAX_ATTEMPTS = 4;
-const ANALYZE_BACKOFF_MS = [4000, 10000, 20000, 30000];
+const ANALYZE_BACKOFF_MS = [2000, 5000, 10000, 15000];
+const GEMINI_TIMEOUT_MS = 60000;
 
 const SYSTEM_PROMPT = `Eres un advisor estratégico para un consultor independiente con AB en Suecia (Göteborg).
 Piensa fuera de la caja y a la vez como calculadora financiera y negociador de mercado.
@@ -190,24 +192,26 @@ function isRetryableGeminiError(status, message) {
 }
 
 async function callGeminiOnce({ apiKey, model, system, user }) {
-  const endpoint =
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent` +
-    `?key=${encodeURIComponent(apiKey.trim())}`;
+  // Match zunigajp chat-worker: header auth + system_instruction + generateContent
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 90000);
+  const timeoutId = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
 
   try {
     const res = await fetch(endpoint, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': apiKey.trim(),
+      },
       signal: controller.signal,
       body: JSON.stringify({
-        systemInstruction: { parts: [{ text: system }] },
+        system_instruction: { parts: [{ text: system }] },
         contents: [{ role: 'user', parts: [{ text: user }] }],
         generationConfig: {
           temperature: 0.7,
-          maxOutputTokens: 4096,
+          maxOutputTokens: 2048,
         },
       }),
     });
@@ -233,7 +237,7 @@ async function callGeminiOnce({ apiKey, model, system, user }) {
   } catch (err) {
     if (err?.name === 'AbortError') {
       const timeoutErr = new Error(
-        'Gemini tardó demasiado (>90s). Reintentando…'
+        `Gemini tardó demasiado (>${Math.round(GEMINI_TIMEOUT_MS / 1000)}s). Reintentando…`
       );
       timeoutErr.retryable = true;
       throw timeoutErr;
@@ -268,34 +272,35 @@ export async function analyzeOffer({
 
   const { system, user } = buildPrompt({ cvText, jobText, snapshot, cvMeta });
   let lastError = null;
+  let modelIndex = 0;
 
   for (let attempt = 0; attempt < ANALYZE_MAX_ATTEMPTS; attempt += 1) {
-    const waitMs = ANALYZE_BACKOFF_MS[attempt] || 30000;
+    const model = GEMINI_MODELS[modelIndex] || GEMINI_MODELS[0];
+    const waitMs = ANALYZE_BACKOFF_MS[attempt] || 15000;
 
     if (attempt === 0) {
-      onStatus?.(`Pensando con ${GEMINI_MODEL}… (puede tardar)`);
+      onStatus?.(`Pensando con ${model}…`);
     } else {
       onStatus?.(
-        `Saturado. Esperando ${Math.round(waitMs / 1000)}s… reintento ${attempt + 1}/${ANALYZE_MAX_ATTEMPTS}`
+        `Esperando ${Math.round(waitMs / 1000)}s… reintento ${attempt + 1}/${ANALYZE_MAX_ATTEMPTS} (${model})`
       );
       await sleep(waitMs);
       onStatus?.(`Reintento ${attempt + 1}/${ANALYZE_MAX_ATTEMPTS}…`);
     }
 
     try {
-      return await callGeminiOnce({
-        apiKey,
-        model: GEMINI_MODEL,
-        system,
-        user,
-      });
+      return await callGeminiOnce({ apiKey, model, system, user });
     } catch (err) {
       lastError = err;
-      // Model retired / not available — no sense retrying the same dead model name
-      if (/no longer available|not found|is not found/i.test(String(err.message || ''))) {
-        throw err;
+      const msg = String(err.message || '');
+      // Retired / unknown model → advance alias list (same as chat-worker)
+      if (/no longer available|not found|is not found|not supported/i.test(msg)) {
+        modelIndex = Math.min(modelIndex + 1, GEMINI_MODELS.length - 1);
+        continue;
       }
       if (!err.retryable) throw err;
+      // On overload, also rotate model on next try
+      if (modelIndex < GEMINI_MODELS.length - 1) modelIndex += 1;
     }
   }
 
