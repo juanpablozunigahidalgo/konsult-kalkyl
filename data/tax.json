@@ -1,0 +1,45 @@
+{
+  "meta": {
+    "year": 2026,
+    "currency": "SEK",
+    "updated": "2026-03-01",
+    "source": "Skatteverket Belopp och procent 2026; Göteborgs Stad kommunalskatt; SFS 2025:872 prisbasbelopp",
+    "notes": "Official Swedish fiscal parameters for AB owner-operator simulation (Göteborg)."
+  },
+  "company": {
+    "bolagsskatt": 0.206,
+    "arbetsgivaravgift": 0.3142,
+    "sarskild_loneskatt_pension": 0.2426
+  },
+  "personal": {
+    "municipality": "Göteborg",
+    "kommunalskatt": 0.326,
+    "begravningsavgift": 0.00292,
+    "kyrkoavgift": 0,
+    "statlig_inkomstskatt": 0.2,
+    "brytpunkt_annual": 660400,
+    "brytpunkt_monthly": 55033,
+    "skiktgrans": 643000,
+    "k10_dividend_tax": 0.2,
+    "public_service_rate": 0.01,
+    "public_service_max": 1299
+  },
+  "pension": {
+    "max_pct_of_salary": 0.35,
+    "prisbasbelopp": 59200,
+    "inkomstbasbelopp": 83400,
+    "deductible_cap_pbb_multiples": 10,
+    "deductible_cap_sek": 592000
+  },
+  "work": {
+    "hours_per_day": 8,
+    "vacation_days_default": 30,
+    "extra_days_default": 0,
+    "notes": "Max hours = weekdays − Swedish public holidays on weekdays − vacation − extra free days, × hours/day."
+  },
+  "salary_presets": {
+    "brytpunkt": 55033,
+    "conservative": 45000,
+    "high": 65000
+  }
+}

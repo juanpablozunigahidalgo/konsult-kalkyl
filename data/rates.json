@@ -1,0 +1,95 @@
+{
+  "meta": {
+    "currency": "SEK",
+    "unit": "per hour ex. moms",
+    "market": "Sweden — IT / AI / Cloud consulting (indicative)",
+    "updated": "2026-01-01",
+    "source": "Curated reference bands (Konsultguiden-style market ranges). Not a live quote API.",
+    "notes": "Bands/scenarios highest → lowest income. Default costs: Västtrafik Göteborg, digital AI stack, telephony 499, etc."
+  },
+  "bands": [
+    {
+      "id": "lead_architect",
+      "label": "Lead / architect",
+      "min": 1200,
+      "typical": 1350,
+      "max": 1600
+    },
+    {
+      "id": "ai_specialist",
+      "label": "AI / MCP / Cloud specialist",
+      "min": 1100,
+      "typical": 1250,
+      "max": 1450
+    },
+    {
+      "id": "senior",
+      "label": "Senior",
+      "min": 1000,
+      "typical": 1150,
+      "max": 1300
+    },
+    {
+      "id": "mid",
+      "label": "Mid / generalist",
+      "min": 850,
+      "typical": 950,
+      "max": 1050
+    }
+  ],
+  "default_expenses_monthly": {
+    "transport": 625,
+    "lodging": 2083,
+    "education": 2083,
+    "equipment": 833,
+    "digital": 1200,
+    "telephony": 499,
+    "accounting": 1250,
+    "insurance": 600,
+    "other": 833
+  },
+  "scenarios": [
+    {
+      "id": "ai_premium_local",
+      "label": "AI premium local",
+      "hourly": 1250,
+      "workload_pct": 90,
+      "gross_salary": 55033,
+      "pension_pct": 35,
+      "max_pension": true,
+      "max_salary": true,
+      "expenses": {
+        "transport": 625,
+        "lodging": 2083,
+        "education": 2083,
+        "equipment": 833,
+        "digital": 1200,
+        "telephony": 499,
+        "accounting": 1250,
+        "insurance": 600,
+        "other": 833
+      }
+    },
+    {
+      "id": "goteborg_remote",
+      "label": "Göteborg / remoto",
+      "hourly": 1150,
+      "workload_pct": 100,
+      "gross_salary": 55033,
+      "pension_pct": 35,
+      "max_pension": true,
+      "max_salary": true,
+      "expenses": {
+        "transport": 625,
+        "lodging": 2083,
+        "education": 2083,
+        "equipment": 833,
+        "digital": 1200,
+        "telephony": 499,
+        "accounting": 1250,
+        "insurance": 600,
+        "other": 833
+      }
+    }
+  ]
+}

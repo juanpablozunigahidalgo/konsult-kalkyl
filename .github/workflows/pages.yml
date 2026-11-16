@@ -1,0 +1,46 @@
+name: Deploy GitHub Pages
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Inyecta la key en el deploy (no queda en el repo git).
+      # Añade el Secret: Settings → Secrets → Actions → GEMINI_API_KEY
+      - name: Inject Gemini key for Pages
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          python3 <<'PY'
+          import json, os
+          key = os.environ.get("GEMINI_API_KEY") or ""
+          path = "js/config.local.js"
+          with open(path, "w", encoding="utf-8") as f:
+              f.write("export const GEMINI_API_KEY = " + json.dumps(key) + ";\n")
+          print("config.local.js written; key_present=" + str(bool(key)))
+          PY
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - id: deployment
+        uses: actions/deploy-pages@v4
