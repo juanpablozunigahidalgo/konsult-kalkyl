@@ -8,7 +8,13 @@ const CV_CACHE_KEY = 'cc_cv_live_v1';
 const CV_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const GEMINI_KEY_STORAGE = 'cc_gemini_api_key';
 const CV_MAX_CHARS = 14000;
-const GEMINI_MODEL = 'gemini-3.8-flash';
+const GEMINI_MODELS = [
+  'gemini-3.8-flash',
+  'gemini-2.5-flash',
+  'gemini-flash-latest',
+];
+const ANALYZE_MAX_ATTEMPTS = 4;
+const ANALYZE_BACKOFF_MS = [3000, 8000, 15000, 25000];
 
 const SYSTEM_PROMPT = `Eres un advisor estratégico para un consultor independiente con AB en Suecia (Göteborg).
 Piensa fuera de la caja y a la vez como calculadora financiera y negociador de mercado.
@@ -175,10 +181,85 @@ export function buildPrompt({ cvText, jobText, snapshot, cvMeta }) {
   return { system: SYSTEM_PROMPT, user };
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isRetryableGeminiError(status, message) {
+  const msg = String(message || '');
+  if (status === 429 || status === 503 || status === 500) return true;
+  return /high demand|try again later|unavailable|resource.?exhausted|overloaded|quota/i.test(
+    msg
+  );
+}
+
+async function callGeminiOnce({ apiKey, model, system, user }) {
+  const endpoint =
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent` +
+    `?key=${encodeURIComponent(apiKey.trim())}`;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 90000);
+
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: system }] },
+        contents: [{ role: 'user', parts: [{ text: user }] }],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 4096,
+        },
+      }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const msg = data?.error?.message || `Gemini error HTTP ${res.status}`;
+      const err = new Error(msg);
+      err.status = res.status;
+      err.retryable = isRetryableGeminiError(res.status, msg);
+      throw err;
+    }
+
+    const text =
+      data?.candidates?.[0]?.content?.parts?.map((p) => p.text).join('') ||
+      '';
+    if (!text.trim()) {
+      const err = new Error('Gemini devolvió respuesta vacía.');
+      err.retryable = true;
+      throw err;
+    }
+    return text.trim();
+  } catch (err) {
+    if (err?.name === 'AbortError') {
+      const timeoutErr = new Error(
+        'Gemini tardó demasiado (>90s). Reintentando…'
+      );
+      timeoutErr.retryable = true;
+      throw timeoutErr;
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 /**
- * Call Gemini Flash generateContent.
+ * Call Gemini with long patience: retries + backoff + model fallback.
+ * onStatus(msg) optional UI callback.
  */
-export async function analyzeOffer({ apiKey, jobText, cvText, snapshot, cvMeta }) {
+export async function analyzeOffer({
+  apiKey,
+  jobText,
+  cvText,
+  snapshot,
+  cvMeta,
+  onStatus,
+}) {
   if (!apiKey?.trim()) {
     throw new Error('Falta API key de Gemini (gratis en Google AI Studio).');
   }
@@ -190,36 +271,29 @@ export async function analyzeOffer({ apiKey, jobText, cvText, snapshot, cvMeta }
   }
 
   const { system, user } = buildPrompt({ cvText, jobText, snapshot, cvMeta });
-  const endpoint =
-    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent` +
-    `?key=${encodeURIComponent(apiKey.trim())}`;
+  let lastError = null;
 
-  const res = await fetch(endpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      systemInstruction: { parts: [{ text: system }] },
-      contents: [{ role: 'user', parts: [{ text: user }] }],
-      generationConfig: {
-        temperature: 0.7,
-        maxOutputTokens: 2048,
-      },
-    }),
-  });
+  for (let attempt = 0; attempt < ANALYZE_MAX_ATTEMPTS; attempt += 1) {
+    const model = GEMINI_MODELS[Math.min(attempt, GEMINI_MODELS.length - 1)];
+    const waitMs = ANALYZE_BACKOFF_MS[attempt] || 25000;
 
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    const msg =
-      data?.error?.message ||
-      `Gemini error HTTP ${res.status}`;
-    throw new Error(msg);
+    if (attempt === 0) {
+      onStatus?.('Pensando con Gemini… (puede tardar)');
+    } else {
+      onStatus?.(
+        `Saturado / lento. Esperando ${Math.round(waitMs / 1000)}s y reintento ${attempt + 1}/${ANALYZE_MAX_ATTEMPTS} (${model})…`
+      );
+      await sleep(waitMs);
+      onStatus?.(`Reintento ${attempt + 1}/${ANALYZE_MAX_ATTEMPTS} con ${model}…`);
+    }
+
+    try {
+      return await callGeminiOnce({ apiKey, model, system, user });
+    } catch (err) {
+      lastError = err;
+      if (!err.retryable) throw err;
+    }
   }
 
-  const text =
-    data?.candidates?.[0]?.content?.parts?.map((p) => p.text).join('') ||
-    '';
-  if (!text.trim()) {
-    throw new Error('Gemini devolvió respuesta vacía.');
-  }
-  return text.trim();
+  throw lastError || new Error('Gemini no respondió tras varios intentos.');
 }

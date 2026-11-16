@@ -324,7 +324,7 @@ async function onAnalyzeOffer() {
 
   btn.disabled = true;
   out.textContent = '';
-  setAiStatus('Analizando…');
+  setAiStatus('Cargando CV…');
 
   try {
     const cv = await fetchCvLive();
@@ -339,14 +339,17 @@ async function onAnalyzeOffer() {
       cvText: cv.text,
       snapshot,
       cvMeta: { source: cv.source, url: cv.url },
+      onStatus: setAiStatus,
     });
     out.textContent = analysis;
     setAiStatus('');
   } catch (err) {
     out.textContent = '';
     const msg = String(err.message || err);
-    if (/high demand|try again later/i.test(msg)) {
-      setAiStatus('Gemini está saturado. Prueba de nuevo en un minuto.');
+    if (/high demand|try again later|saturad|resource.?exhausted|overloaded/i.test(msg)) {
+      setAiStatus(
+        'Gemini sigue saturado tras varios intentos. Espera 1–2 min y vuelve a pulsar Analizar.'
+      );
     } else {
       setAiStatus(`Error: ${msg}`);
     }
