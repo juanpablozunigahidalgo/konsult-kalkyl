@@ -1,84 +1,105 @@
 # Calculo Consultoria
 
-Simulador estático (GitHub Pages) para consultores independientes con **AB en Suecia**.
+**Live:** [juanpablozunigahidalgo.github.io/konsult-kalkyl](https://juanpablozunigahidalgo.github.io/konsult-kalkyl/)  
+**Author:** [Juan Pablo Zúñiga](https://zunigajp.com) — AI / Cloud consultant · AB · Göteborg, Sweden
 
-Estética consola blanco/negro (inspirada en [zunigajp.com](https://zunigajp.com)).
+---
 
-## Qué calcula
+A decision tool for independent consultants in Sweden.
 
-- Timpris × dedicación (omfattning) → facturación anual
-- Viajes / traslado no facturable
-- Gastos por categoría (transporte, estadía, educación, HW, telefonía, etc.)
-- Salario hasta **brytpunkt** (toggle)
-- **Tjänstepension** máxima 35% / tope 10 PBB (toggle)
-- Arbetsgivaravgifter, särskild löneskatt, bolagsskatt, utdelning K10
-- Vista ASCII de a dónde va cada corona + bolsillo personal
+Not a toy calculator. A sharp, console-minimal product that answers the question every serious consultant asks before saying yes:
 
-## Datos actualizables (sin backend)
+> *With this hourly rate, this workload, these costs, and Swedish AB tax rules — is the offer actually good for me?*
 
-| Archivo | Contenido |
-|---------|-----------|
-| `data/tax.json` | Límites fiscales del año (brytpunkt, PBB, avgifter) |
-| `data/rates.json` | Bandas de hourly rate + escenarios preset |
+Then it goes one step further: paste the job description, and an AI advisor reads your **live CV**, the offer, and the financial snapshot — and answers in Spanish with a verdict, market pricing, and a concrete counter-offer.
 
-El front hace `fetch` de esos JSON al cargar. En GitHub Pages eso funciona; en `file://` cae a valores embebidos.
+---
 
-Más adelante puedes:
+## Why this exists
 
-1. Editar los JSON a mano cuando Skatteverket publique cifras nuevas
-2. Añadir un GitHub Action que regenere `data/*.json` desde fuentes públicas
-3. Apuntar a un gist/raw URL si quieres centralizar datos entre forks
+Running an **Aktiebolag** as a consultant in Sweden is elegant on paper and brutal in the details:
 
-> No hay API pública estable y CORS-friendly de Skatteverket para brytpunkt/PBB en el browser. El patrón correcto en Pages es **JSON versionado en el repo** (+ CI opcional).
+- Timpris looks high until travel, tools, and bänk eat the margin  
+- “Max salary” without understanding **brytpunkt** is an expensive mistake  
+- **Tjänstepension** at 35% / 10 PBB is powerful — if you model it  
+- A “good” rate for a mid generalist can be a bad rate for an AI / cloud specialist  
 
-## Local
+This repo is how I think about offers: numbers first, narrative second, ego last.
 
-Necesitas un server estático (ES modules):
+---
+
+## What’s inside
+
+| Layer | What you get |
+|--------|----------------|
+| **Contract inputs** | Timpris, omfattning, vacation, Swedish public holidays (röda dagar) |
+| **Cost stack** | Transport (Västtrafik or car detail), lodging, education, hardware, digital/AI tools, telephony, accounting, insurance, conferences |
+| **Tax engine** | Arbetsgivaravgifter, bolagsskatt, K10 dividend, Göteborg kommunalskatt, grundavdrag / jobbskatteavdrag approximations aligned to Skatteverket 2026 |
+| **Executive summary** | One paragraph: revenue, pocket, pension, dividend, conclusion |
+| **AI offer analysis** | Live CV from [zunigajp.com/english/cv](https://zunigajp.com/english/cv/) + pasted JD (EN/other) → strategic recommendation in Spanish |
+
+UI: white, black, Consolas. Inspired by [zunigajp.com](https://zunigajp.com). No dashboard clutter.
+
+---
+
+## Who this signals (if you’re hiring / staffing)
+
+If you’re HR, a hiring manager, or a consultancy partner scanning GitHub:
+
+- I build **end-to-end products**, not slideware  
+- I care about **domain truth** (Swedish tax, real consultant economics)  
+- I ship **static, maintainable systems** (GitHub Pages, versioned fiscal data, CI deploy)  
+- I connect **AI to real workflows** (live CV retrieval + Gemini analysis on top of a calculator, not a chatbot demo)  
+
+Stack in practice: vanilla JS modules, precise fiscal modeling, GitHub Actions, secret injection for AI, CORS-safe live document fetch.
+
+Background: dual MSc (Engineering + Management of Innovation, Chalmers), AI / cloud consulting (Oracle GenAI, AWS Bedrock, full-stack), based in Göteborg.
+
+More: **[zunigajp.com](https://zunigajp.com)** · CV: **[zunigajp.com/english/cv](https://zunigajp.com/english/cv/)**
+
+---
+
+## Quick start
 
 ```bash
+# needs a static server (ES modules)
 npx --yes serve .
 ```
 
-Abre la URL que imprima (ej. `http://localhost:3000`).
+Open the printed URL. Defaults: **1000 SEK/h @ 70%** with a realistic Göteborg cost stack.
 
-## GitHub Pages
+### AI analysis (optional)
 
-1. Crea el repo en GitHub y haz push de esta carpeta
-2. Settings → Pages → Source: **Deploy from a branch** → `main` / root
-3. Sitio en `https://<user>.github.io/konsult-kalkyl/`
+1. Free key: [Google AI Studio](https://aistudio.google.com/apikey)  
+2. Local: copy `js/config.example.js` → `js/config.local.js` (gitignored)  
+3. Pages: set Actions secret `GEMINI_API_KEY` (injected at deploy, not stored in git history)
 
-Si el repo no se llama exactamente igual que la carpeta raíz del site, los paths relativos (`./css`, `./data`) siguen funcionando.
+---
 
-## Precisión
+## Data & precision
 
-Modelo alineado a parámetros oficiales Skatteverket 2026 (brytpunkt 660 400, PBB 59 200, avgifter, bolagsskatt 20,6 %), festivos suecos, calendario lun–vie y kommunalskatt Göteborg.
+| File | Role |
+|------|------|
+| `data/tax.json` | Official-style 2026 parameters (brytpunkt, PBB, avgifter, Göteborg rates) |
+| `data/rates.json` | Market hourly bands + scenarios |
 
-## Análisis de oferta con AI
+Fiscal calendar: Mon–Fri − Swedish public holidays − vacation − optional extra free days.
 
-Sección **4. Análisis de la oferta con AI**:
+This is a high-fidelity **decision model**, not a substitute for your accountant or Skatteverket.
 
-1. Lee tu CV **live** desde [zunigajp.com/english/cv](https://zunigajp.com/english/cv/) (vía Jina Reader; cache local 24h)
-2. Pegas la oferta (inglés u otro idioma)
-3. Cruza con el snapshot del simulador + bandas de `data/rates.json`
-4. Gemini Flash responde en **español** (veredicto, precio, contraoferta)
+---
 
-### API key gratis (Gemini)
+## Deploy
 
-1. Entra a [Google AI Studio](https://aistudio.google.com/apikey)
-2. Crea una API key
+GitHub Actions → GitHub Pages (`Deploy GitHub Pages` workflow).  
+Push to `master` / `main` publishes automatically.
 
-**Opción A — local (recomendado al desarrollar)**  
-```bash
-copy js\config.example.js js\config.local.js
-```
-Edita `js/config.local.js` y pega la key. Ese archivo está en `.gitignore` (no se sube).
+---
 
-**Opción B — GitHub Pages (key en la página, no en el historial git)**  
-1. Repo → **Settings → Secrets and variables → Actions**  
-2. New secret: nombre `GEMINI_API_KEY`, valor = tu key  
-3. El workflow de Pages genera `config.local.js` en el **deploy** (no queda committed)
+## License / use
 
-También puedes pegar la key en la UI (fallback `localStorage`).
+Built as a personal operating tool and a public craft sample.  
+Fork it, adapt the cost defaults, point the CV fetch at your own site — and negotiate like an adult.
 
-> Aviso: en un sitio estático público la key es visible en el JS del navegador.  
-> En Google AI Studio restringe la key por referrer HTTP a tu dominio de Pages.
+—
+*Juan Pablo Zúñiga Hidalgo · Göteborg*
