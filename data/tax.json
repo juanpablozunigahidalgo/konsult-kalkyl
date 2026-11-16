@@ -34,7 +34,7 @@
   "work": {
     "hours_per_day": 8,
     "vacation_days_default": 30,
-    "extra_days_default": 0,
+    "extra_days_default": 8,
     "notes": "Max hours = weekdays − Swedish public holidays on weekdays − vacation − extra free days, × hours/day."
   },
   "salary_presets": {

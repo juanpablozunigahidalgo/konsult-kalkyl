@@ -63,7 +63,7 @@ More: **[zunigajp.com](https://zunigajp.com)** · CV: **[zunigajp.com/english/cv
 npx --yes serve .
 ```
 
-Open the printed URL. Defaults: **1000 SEK/h @ 70%** with a realistic Göteborg cost stack.
+Open the printed URL. Defaults: **1000 SEK/h @ 75%** (+ 8 extra free days) with a realistic Göteborg cost stack.
 
 ### AI analysis (optional)
 

@@ -44,7 +44,7 @@ const FALLBACK_TAX = {
   work: {
     hours_per_day: 8,
     vacation_days_default: 30,
-    extra_days_default: 0,
+    extra_days_default: 8,
   },
 };
 
@@ -152,9 +152,9 @@ function readCar() {
 function gatherInput() {
   return {
     hourlyRate: readNumber('hourlyRate', 1000),
-    workloadPct: readNumber('workload', 70),
+    workloadPct: readNumber('workload', 75),
     vacationDays: readNumber('vacationDays', 30),
-    extraDays: readNumber('extraDays', 0),
+    extraDays: readNumber('extraDays', 8),
     grossSalary: readNumber('grossSalary', 55000),
     pensionPct: readNumber('pensionRate', 35),
     maxPension: el('maxPension').checked,
@@ -535,9 +535,10 @@ async function init() {
   renderBands();
   updateStatus();
 
-  // Standard default: 1000 SEK/h @ 70% + standard cost stack
+  // Standard default: 1000 SEK/h @ 75% + 8 días libres extra
   setVal('hourlyRate', 1000);
-  setVal('workload', 70);
+  setVal('workload', 75);
+  setVal('extraDays', 8);
   for (const [key] of EXPENSE_KEYS) {
     setVal(`exp_${key}`, DEFAULT_EXPENSES[key] ?? 0);
   }
