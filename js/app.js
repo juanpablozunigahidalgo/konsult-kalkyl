@@ -4,9 +4,7 @@ import {
   buildSnapshot,
   analyzeOffer,
   loadGeminiKey,
-  saveGeminiKey,
   loadBundledGeminiKey,
-  getBundledGeminiKey,
 } from './offer-ai.js';
 
 const CAR_FIELDS = [
@@ -308,28 +306,28 @@ function setAiStatus(text) {
 async function onAnalyzeOffer() {
   const btn = el('btnAnalyzeOffer');
   const out = el('aiOutput');
-  const apiKey = el('geminiKey').value.trim();
+  const apiKey = loadGeminiKey();
   const jobText = el('offerText').value;
 
-  saveGeminiKey(apiKey);
-
+  if (!apiKey) {
+    setAiStatus('Falta API key (config.local.js o Secret GEMINI_API_KEY).');
+    return;
+  }
+  if (!jobText.trim()) {
+    setAiStatus('Pega una oferta primero.');
+    return;
+  }
   if (!state.lastResult || !state.lastInput) {
-    setAiStatus('Espera a que el simulador termine de calcular.');
+    setAiStatus('Espera a que el simulador calcule.');
     return;
   }
 
   btn.disabled = true;
   out.textContent = '';
-  setAiStatus('Cargando CV live desde zunigajp.com…');
+  setAiStatus('Analizando…');
 
   try {
     const cv = await fetchCvLive();
-    setAiStatus(
-      cv.source === 'live'
-        ? 'CV live OK. Analizando con Gemini…'
-        : `CV desde cache (live falló: ${cv.warning || 'red'}). Analizando…`
-    );
-
     const snapshot = buildSnapshot(
       state.lastInput,
       state.lastResult,
@@ -343,35 +341,21 @@ async function onAnalyzeOffer() {
       cvMeta: { source: cv.source, url: cv.url },
     });
     out.textContent = analysis;
-    setAiStatus(`Listo · CV: ${cv.source} · ${cv.url}`);
+    setAiStatus('');
   } catch (err) {
     out.textContent = '';
-    setAiStatus(`Error: ${err.message || err}`);
+    const msg = String(err.message || err);
+    if (/high demand|try again later/i.test(msg)) {
+      setAiStatus('Gemini está saturado. Prueba de nuevo en un minuto.');
+    } else {
+      setAiStatus(`Error: ${msg}`);
+    }
   } finally {
     btn.disabled = false;
   }
 }
 
 function bindOfferAi() {
-  const keyInput = el('geminiKey');
-
-  if (keyInput) {
-    const bundled = getBundledGeminiKey();
-    if (bundled) {
-      keyInput.value = bundled;
-      keyInput.readOnly = true;
-      keyInput.placeholder = 'key cargada desde deploy / config.local.js';
-      const label = document.querySelector('label[for="geminiKey"]');
-      if (label) {
-        label.textContent = 'Gemini API key (desde Secret / config local)';
-      }
-    } else {
-      keyInput.value = loadGeminiKey();
-      keyInput.addEventListener('change', () => {
-        saveGeminiKey(keyInput.value.trim());
-      });
-    }
-  }
   el('btnAnalyzeOffer')?.addEventListener('click', onAnalyzeOffer);
 }
 

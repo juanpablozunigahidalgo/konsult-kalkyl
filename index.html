@@ -133,32 +133,15 @@
 
         <section class="panel ai-panel">
           <h2 class="panel-title">4. Análisis de la oferta con AI</h2>
-          <p class="field-hint">
-            Lee tu CV live desde zunigajp.com, la oferta pegada (EN u otro idioma)
-            y el snapshot del simulador. Respuesta en español.
-          </p>
-          <label class="ai-label" for="offerText">Oferta / job description</label>
           <textarea
             id="offerText"
             class="ai-textarea"
-            rows="10"
-            placeholder="Pega aquí la oferta (inglés u otro idioma)…"
+            rows="8"
+            placeholder="Pega la oferta aquí…"
           ></textarea>
-
-          <div class="ai-controls">
-            <label class="ai-label" for="geminiKey">Gemini API key</label>
-            <input
-              id="geminiKey"
-              class="ai-key"
-              type="password"
-              autocomplete="off"
-              placeholder="pega tu key gratis (Google AI Studio)"
-            />
-            <button type="button" id="btnAnalyzeOffer" class="ai-btn">
-              &gt; Analizar oferta
-            </button>
-          </div>
-
+          <button type="button" id="btnAnalyzeOffer" class="ai-btn">
+            &gt; Analizar
+          </button>
           <p id="aiStatus" class="field-hint" aria-live="polite"></p>
           <pre id="aiOutput" class="ai-output" aria-live="polite"></pre>
         </section>
