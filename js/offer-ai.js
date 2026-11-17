@@ -21,10 +21,17 @@ Usa el CV live, la oferta pegada, el snapshot del simulador y las bandas de merc
 Sé directo, concreto y accionable. No inventes experiencia que no esté en el CV.
 No des asesoría jurídica/fiscal vinculante; razona con los números dados.
 
+El campo snapshot.hourlyRate es el timpris OFRECIDO / pedido en el simulador (lo que el usuario tiene en el input al analizar).
+Estima un SALARIO RECOMENDADO (SEK/h) justo para ESTA descripción de trabajo + perfil del CV + bandas de mercado.
+Calcula SALARIO GAP = recomendado − ofrecido (positivo = podrías pedir más; negativo = estás por encima del mercado para este rol).
+
 Formato de salida EXACTO (sin markdown extra):
 VEREDICTO: FUERTE | ACEPTABLE | DEBIL | RECHAZAR
 FIT CV-OFERTA: ...
 PRECIO vs MERCADO: ...
+SALARIO RECOMENDADO: ... SEK/h
+SALARIO OFRECIDO: ... SEK/h
+SALARIO GAP: ... SEK/h (...%)
 ECONOMIA AB: ...
 RECOMENDACION: ...
 CONTRAOFERTA: ... SEK/h @ ...%
@@ -171,9 +178,12 @@ export function buildPrompt({ cvText, jobText, snapshot, cvMeta }) {
     jobText.trim(),
     '',
     '## Snapshot del simulador financiero AB (SEK)',
+    `Timpris ofrecido (input del usuario al analizar): ${snapshot.hourlyRate} SEK/h`,
     JSON.stringify(snapshot, null, 2),
     '',
-    'Analiza fit, precio (timpris) vs mercado, economía del AB con estos números, y recomienda aceptar / negociar / rechazar con contraoferta concreta.',
+    'Analiza fit, precio (timpris) vs mercado, economía del AB con estos números.',
+    'Incluye SALARIO RECOMENDADO para esta oferta (SEK/h), repite SALARIO OFRECIDO (= hourlyRate del snapshot) y SALARIO GAP (recomendado − ofrecido, también en %).',
+    'Recomienda aceptar / negociar / rechazar con contraoferta concreta.',
   ].join('\n');
 
   return { system: SYSTEM_PROMPT, user };

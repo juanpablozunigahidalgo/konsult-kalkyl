@@ -327,6 +327,8 @@ async function onAnalyzeOffer() {
   setAiStatus('Cargando CV…');
 
   try {
+    // Relee inputs (p.ej. timpris) justo al pulsar Analizar
+    render();
     const cv = await fetchCvLive();
     const snapshot = buildSnapshot(
       state.lastInput,
